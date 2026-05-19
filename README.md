@@ -5,18 +5,22 @@ Binary data serialization and deserialization. Provides `BlobBuilder` for writin
 ## Usage
 
 ```doof
-import { BlobBuilder, BlobReader, Endian } from "std/blob"
+import { BlobBuilder, BlobReader, Endian, TextEncoding } from "std/blob"
 
 // Write
 builder := BlobBuilder { endianness: .BigEndian }
 builder.writeInt(16909060)
 builder.writeByte(5)
+try! builder.writeText("café", .Windows1252)
+builder.writeTextLossy("price: €", .Ascii)
 data := builder.build()
 
 // Read
 reader := BlobReader(data)
 value := reader.readInt()
 flag := reader.readByte()
+text := try! reader.readText(4L, .Windows1252)
+lossyText := reader.readTextLossy(8L, .Ascii)
 ```
 
 ## Exports
@@ -29,6 +33,30 @@ Controls the byte order used by `BlobBuilder` and `BlobReader`.
 |--------|-------|-------------|
 | `BigEndian` | `0` | Most-significant byte first |
 | `LittleEndian` | `1` | Least-significant byte first (default) |
+
+### `TextEncoding`
+
+Controls how `writeText` encodes strings and how `readText` decodes bytes.
+
+| Member | Description |
+|--------|-------------|
+| `Utf8` | UTF-8 |
+| `Utf16LE` | UTF-16 little-endian |
+| `Utf16BE` | UTF-16 big-endian |
+| `Latin1` | ISO-8859-1 |
+| `Windows1252` | Windows code page 1252 |
+| `CP437` | IBM PC code page 437 |
+| `Ascii` | 7-bit ASCII |
+
+### `EncodingError`
+
+Returned by text encoding operations.
+
+| Member | Description |
+|--------|-------------|
+| `InvalidData` | Input bytes or string data are malformed for the requested encoding |
+| `UnrepresentableCharacter` | A string contains a character that cannot be represented by the requested encoding |
+| `OutputTooLarge` | The encoded text is too large to report as an `int` byte count |
 
 ---
 
@@ -59,6 +87,8 @@ BlobBuilder { size: 256L, endianness: .LittleEndian }
 | `writeDouble(value: double): void` | — | Write a 64-bit float |
 | `writeBytes(value: readonly byte[]): void` | — | Append a raw byte array |
 | `writeString(value: string): void` | — | Append raw UTF-8 bytes (no length prefix) |
+| `writeText(value: string, encoding: TextEncoding = .Utf8): Result<int, EncodingError>` | `Result<int, EncodingError>` | Encode text, append the bytes, and return the byte count |
+| `writeTextLossy(value: string, encoding: TextEncoding = .Utf8): int` | `int` | Encode text, replacing unrepresentable characters with `?`, append the bytes, and return the byte count |
 | `build(): readonly byte[]` | `readonly byte[]` | Finalise and return the buffer; resets builder |
 
 ---
@@ -90,4 +120,6 @@ BlobReader { data: bytes, endianness: .BigEndian }
 | `readDouble(): double` | `double` | Read a 64-bit float |
 | `readBytes(length: long): readonly byte[]` | `readonly byte[]` | Read `length` raw bytes |
 | `readString(length: long): string` | `string` | Read `length` bytes as a UTF-8 string |
+| `readText(length: long, encoding: TextEncoding = .Utf8): Result<string, EncodingError>` | `Result<string, EncodingError>` | Decode `length` bytes as text |
+| `readTextLossy(length: long, encoding: TextEncoding = .Utf8): string` | `string` | Decode `length` bytes as text, replacing malformed input with `�` |
 | `findNextAny(candidates: readonly byte[]): long \| null` | `long \| null` | Return the offset of the next byte matching any candidate, or `null` |

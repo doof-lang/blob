@@ -1,4 +1,4 @@
-export { Endian } from "./types"
+export { EncodingError, Endian, TextEncoding } from "./types"
 
 export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobBuilder {
   static create(size: long = 0L, endianness: Endian = .LittleEndian): BlobBuilder
@@ -13,6 +13,8 @@ export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobB
   writeDouble(value: double): void
   writeBytes(value: readonly byte[]): void
   writeString(value: string): void
+  writeText(value: string, encoding: TextEncoding = .Utf8): Result<int, EncodingError>
+  writeTextLossy(value: string, encoding: TextEncoding = .Utf8): int
   build(): readonly byte[]
 }
 
@@ -30,5 +32,7 @@ export import class BlobReader from "native_blob.hpp" as doof_blob::NativeBlobRe
   readDouble(): double
   readBytes(length: long): readonly byte[]
   readString(length: long): string
+  readText(length: long, encoding: TextEncoding = .Utf8): Result<string, EncodingError>
+  readTextLossy(length: long, encoding: TextEncoding = .Utf8): string
   findNextAny(candidates: readonly byte[]): long | null
 }

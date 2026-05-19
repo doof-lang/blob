@@ -49,6 +49,453 @@ inline int64_t checkedAdvance(int64_t start, size_t width, const char* context) 
     return start + static_cast<int64_t>(width);
 }
 
+inline bool checkedIntSize(size_t value) {
+    return value <= static_cast<size_t>(std::numeric_limits<int32_t>::max());
+}
+
+inline doof::Result<int32_t, EncodingError> encodingFailure(EncodingError error) {
+    return doof::Result<int32_t, EncodingError>::failure(error);
+}
+
+inline doof::Result<std::string, EncodingError> decodingFailure(EncodingError error) {
+    return doof::Result<std::string, EncodingError>::failure(error);
+}
+
+inline const std::array<char32_t, 128>& windows1252Table() {
+    static const std::array<char32_t, 128> table {
+        0x20AC, 0x0081, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
+        0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x008D, 0x017D, 0x008F,
+        0x0090, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
+        0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x009D, 0x017E, 0x0178,
+        0x00A0, 0x00A1, 0x00A2, 0x00A3, 0x00A4, 0x00A5, 0x00A6, 0x00A7,
+        0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x00AF,
+        0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x00B4, 0x00B5, 0x00B6, 0x00B7,
+        0x00B8, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x00BE, 0x00BF,
+        0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5, 0x00C6, 0x00C7,
+        0x00C8, 0x00C9, 0x00CA, 0x00CB, 0x00CC, 0x00CD, 0x00CE, 0x00CF,
+        0x00D0, 0x00D1, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6, 0x00D7,
+        0x00D8, 0x00D9, 0x00DA, 0x00DB, 0x00DC, 0x00DD, 0x00DE, 0x00DF,
+        0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00E6, 0x00E7,
+        0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00EC, 0x00ED, 0x00EE, 0x00EF,
+        0x00F0, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7,
+        0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF,
+    };
+    return table;
+}
+
+inline const std::array<char32_t, 128>& cp437Table() {
+    static const std::array<char32_t, 128> table {
+        0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7,
+        0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
+        0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9,
+        0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192,
+        0x00E1, 0x00ED, 0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA,
+        0x00BF, 0x2310, 0x00AC, 0x00BD, 0x00BC, 0x00A1, 0x00AB, 0x00BB,
+        0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556,
+        0x2555, 0x2563, 0x2551, 0x2557, 0x255D, 0x255C, 0x255B, 0x2510,
+        0x2514, 0x2534, 0x252C, 0x251C, 0x2500, 0x253C, 0x255E, 0x255F,
+        0x255A, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256C, 0x2567,
+        0x2568, 0x2564, 0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256B,
+        0x256A, 0x2518, 0x250C, 0x2588, 0x2584, 0x258C, 0x2590, 0x2580,
+        0x03B1, 0x00DF, 0x0393, 0x03C0, 0x03A3, 0x03C3, 0x00B5, 0x03C4,
+        0x03A6, 0x0398, 0x03A9, 0x03B4, 0x221E, 0x03C6, 0x03B5, 0x2229,
+        0x2261, 0x00B1, 0x2265, 0x2264, 0x2320, 0x2321, 0x00F7, 0x2248,
+        0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0,
+    };
+    return table;
+}
+
+inline void appendUtf8(std::string& output, char32_t codePoint) {
+    if (codePoint <= 0x7F) {
+        output.push_back(static_cast<char>(codePoint));
+    } else if (codePoint <= 0x7FF) {
+        output.push_back(static_cast<char>(0xC0 | (codePoint >> 6)));
+        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+    } else if (codePoint <= 0xFFFF) {
+        output.push_back(static_cast<char>(0xE0 | (codePoint >> 12)));
+        output.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
+        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+    } else {
+        output.push_back(static_cast<char>(0xF0 | (codePoint >> 18)));
+        output.push_back(static_cast<char>(0x80 | ((codePoint >> 12) & 0x3F)));
+        output.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F)));
+        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3F)));
+    }
+}
+
+inline void appendUtf8Bytes(std::vector<uint8_t>& output, char32_t codePoint) {
+    std::string encoded;
+    appendUtf8(encoded, codePoint);
+    output.insert(output.end(), encoded.begin(), encoded.end());
+}
+
+inline bool readUtf8CodePoint(const std::string& input, size_t& index, char32_t& codePoint) {
+    if (index >= input.size()) {
+        return false;
+    }
+
+    const uint8_t first = static_cast<uint8_t>(input[index]);
+    if (first <= 0x7F) {
+        codePoint = first;
+        index += 1;
+        return true;
+    }
+
+    size_t width = 0;
+    char32_t value = 0;
+    char32_t minValue = 0;
+    if (first >= 0xC2 && first <= 0xDF) {
+        width = 2;
+        value = first & 0x1F;
+        minValue = 0x80;
+    } else if (first >= 0xE0 && first <= 0xEF) {
+        width = 3;
+        value = first & 0x0F;
+        minValue = 0x800;
+    } else if (first >= 0xF0 && first <= 0xF4) {
+        width = 4;
+        value = first & 0x07;
+        minValue = 0x10000;
+    } else {
+        return false;
+    }
+
+    if (index + width > input.size()) {
+        return false;
+    }
+
+    for (size_t offset = 1; offset < width; offset++) {
+        const uint8_t next = static_cast<uint8_t>(input[index + offset]);
+        if ((next & 0xC0) != 0x80) {
+            return false;
+        }
+        value = (value << 6) | (next & 0x3F);
+    }
+
+    if (value < minValue || value > 0x10FFFF || (value >= 0xD800 && value <= 0xDFFF)) {
+        return false;
+    }
+
+    codePoint = value;
+    index += width;
+    return true;
+}
+
+inline std::optional<uint8_t> encodeWindows1252CodePoint(char32_t codePoint) {
+    if (codePoint <= 0x7F || (codePoint >= 0xA0 && codePoint <= 0xFF)) {
+        return static_cast<uint8_t>(codePoint);
+    }
+
+    const auto& table = windows1252Table();
+    for (size_t index = 0; index < 32; index++) {
+        if (table[index] == codePoint) {
+            return static_cast<uint8_t>(0x80 + index);
+        }
+    }
+    return std::nullopt;
+}
+
+inline std::optional<uint8_t> encodeCp437CodePoint(char32_t codePoint) {
+    if (codePoint <= 0x7F) {
+        return static_cast<uint8_t>(codePoint);
+    }
+
+    const auto& table = cp437Table();
+    for (size_t index = 0; index < table.size(); index++) {
+        if (table[index] == codePoint) {
+            return static_cast<uint8_t>(0x80 + index);
+        }
+    }
+    return std::nullopt;
+}
+
+inline bool readUtf8CodePointLossy(const std::string& input, size_t& index, char32_t& codePoint) {
+    const size_t start = index;
+    if (readUtf8CodePoint(input, index, codePoint)) {
+        return true;
+    }
+
+    index = std::min(start + 1, input.size());
+    codePoint = 0xFFFD;
+    return false;
+}
+
+inline doof::Result<std::vector<uint8_t>, EncodingError> encodeTextBytes(const std::string& value, TextEncoding encoding) {
+    std::vector<uint8_t> output;
+    if (encoding == TextEncoding::Utf8) {
+        if (!checkedIntSize(value.size())) {
+            return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::OutputTooLarge);
+        }
+
+        size_t index = 0;
+        char32_t ignored = 0;
+        while (index < value.size()) {
+            if (!readUtf8CodePoint(value, index, ignored)) {
+                return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::InvalidData);
+            }
+        }
+
+        output.assign(value.begin(), value.end());
+        return doof::Result<std::vector<uint8_t>, EncodingError>::success(output);
+    }
+
+    size_t index = 0;
+    while (index < value.size()) {
+        char32_t codePoint = 0;
+        if (!readUtf8CodePoint(value, index, codePoint)) {
+            return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::InvalidData);
+        }
+
+        if (encoding == TextEncoding::Utf16LE || encoding == TextEncoding::Utf16BE) {
+            auto appendUnit = [&](uint16_t unit) {
+                if (encoding == TextEncoding::Utf16LE) {
+                    output.push_back(static_cast<uint8_t>(unit & 0xFF));
+                    output.push_back(static_cast<uint8_t>(unit >> 8));
+                } else {
+                    output.push_back(static_cast<uint8_t>(unit >> 8));
+                    output.push_back(static_cast<uint8_t>(unit & 0xFF));
+                }
+            };
+
+            if (codePoint <= 0xFFFF) {
+                appendUnit(static_cast<uint16_t>(codePoint));
+            } else {
+                const char32_t scalar = codePoint - 0x10000;
+                appendUnit(static_cast<uint16_t>(0xD800 + (scalar >> 10)));
+                appendUnit(static_cast<uint16_t>(0xDC00 + (scalar & 0x3FF)));
+            }
+            continue;
+        }
+
+        std::optional<uint8_t> encoded;
+        if (encoding == TextEncoding::Ascii) {
+            if (codePoint <= 0x7F) {
+                encoded = static_cast<uint8_t>(codePoint);
+            }
+        } else if (encoding == TextEncoding::Latin1) {
+            if (codePoint <= 0xFF) {
+                encoded = static_cast<uint8_t>(codePoint);
+            }
+        } else if (encoding == TextEncoding::Windows1252) {
+            encoded = encodeWindows1252CodePoint(codePoint);
+        } else if (encoding == TextEncoding::CP437) {
+            encoded = encodeCp437CodePoint(codePoint);
+        }
+
+        if (!encoded.has_value()) {
+            return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::UnrepresentableCharacter);
+        }
+        output.push_back(encoded.value());
+    }
+
+    if (!checkedIntSize(output.size())) {
+        return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::OutputTooLarge);
+    }
+    return doof::Result<std::vector<uint8_t>, EncodingError>::success(output);
+}
+
+inline std::vector<uint8_t> encodeTextBytesLossy(const std::string& value, TextEncoding encoding) {
+    std::vector<uint8_t> output;
+    if (encoding == TextEncoding::Utf8) {
+        size_t index = 0;
+        while (index < value.size()) {
+            char32_t codePoint = 0;
+            const bool valid = readUtf8CodePointLossy(value, index, codePoint);
+            if (valid) {
+                appendUtf8Bytes(output, codePoint);
+            } else {
+                output.push_back(static_cast<uint8_t>('?'));
+            }
+        }
+        return output;
+    }
+
+    size_t index = 0;
+    while (index < value.size()) {
+        char32_t codePoint = 0;
+        const bool valid = readUtf8CodePointLossy(value, index, codePoint);
+        if (!valid) {
+            codePoint = '?';
+        }
+
+        if (encoding == TextEncoding::Utf16LE || encoding == TextEncoding::Utf16BE) {
+            auto appendUnit = [&](uint16_t unit) {
+                if (encoding == TextEncoding::Utf16LE) {
+                    output.push_back(static_cast<uint8_t>(unit & 0xFF));
+                    output.push_back(static_cast<uint8_t>(unit >> 8));
+                } else {
+                    output.push_back(static_cast<uint8_t>(unit >> 8));
+                    output.push_back(static_cast<uint8_t>(unit & 0xFF));
+                }
+            };
+
+            if (codePoint <= 0xFFFF) {
+                appendUnit(static_cast<uint16_t>(codePoint));
+            } else {
+                const char32_t scalar = codePoint - 0x10000;
+                appendUnit(static_cast<uint16_t>(0xD800 + (scalar >> 10)));
+                appendUnit(static_cast<uint16_t>(0xDC00 + (scalar & 0x3FF)));
+            }
+            continue;
+        }
+
+        std::optional<uint8_t> encoded;
+        if (encoding == TextEncoding::Ascii) {
+            if (codePoint <= 0x7F) {
+                encoded = static_cast<uint8_t>(codePoint);
+            }
+        } else if (encoding == TextEncoding::Latin1) {
+            if (codePoint <= 0xFF) {
+                encoded = static_cast<uint8_t>(codePoint);
+            }
+        } else if (encoding == TextEncoding::Windows1252) {
+            encoded = encodeWindows1252CodePoint(codePoint);
+        } else if (encoding == TextEncoding::CP437) {
+            encoded = encodeCp437CodePoint(codePoint);
+        }
+
+        output.push_back(encoded.value_or(static_cast<uint8_t>('?')));
+    }
+
+    return output;
+}
+
+inline uint16_t readUtf16Unit(const std::vector<uint8_t>& data, size_t index, TextEncoding encoding) {
+    if (encoding == TextEncoding::Utf16LE) {
+        return static_cast<uint16_t>(data[index]) | (static_cast<uint16_t>(data[index + 1]) << 8);
+    }
+    return (static_cast<uint16_t>(data[index]) << 8) | static_cast<uint16_t>(data[index + 1]);
+}
+
+inline doof::Result<std::string, EncodingError> decodeTextBytes(
+    const std::vector<uint8_t>& data,
+    TextEncoding encoding
+) {
+    std::string output;
+    if (encoding == TextEncoding::Utf8) {
+        output.assign(data.begin(), data.end());
+        size_t index = 0;
+        char32_t ignored = 0;
+        while (index < output.size()) {
+            if (!readUtf8CodePoint(output, index, ignored)) {
+                return decodingFailure(EncodingError::InvalidData);
+            }
+        }
+        return doof::Result<std::string, EncodingError>::success(output);
+    }
+
+    if (encoding == TextEncoding::Utf16LE || encoding == TextEncoding::Utf16BE) {
+        if ((data.size() % 2) != 0) {
+            return decodingFailure(EncodingError::InvalidData);
+        }
+
+        for (size_t index = 0; index < data.size(); index += 2) {
+            const uint16_t unit = readUtf16Unit(data, index, encoding);
+            if (unit >= 0xD800 && unit <= 0xDBFF) {
+                if (index + 3 >= data.size()) {
+                    return decodingFailure(EncodingError::InvalidData);
+                }
+
+                const uint16_t low = readUtf16Unit(data, index + 2, encoding);
+                if (low < 0xDC00 || low > 0xDFFF) {
+                    return decodingFailure(EncodingError::InvalidData);
+                }
+
+                const char32_t codePoint = 0x10000 + (((unit - 0xD800) << 10) | (low - 0xDC00));
+                appendUtf8(output, codePoint);
+                index += 2;
+            } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+                return decodingFailure(EncodingError::InvalidData);
+            } else {
+                appendUtf8(output, unit);
+            }
+        }
+        return doof::Result<std::string, EncodingError>::success(output);
+    }
+
+    const auto& win1252 = windows1252Table();
+    const auto& cp437 = cp437Table();
+    for (uint8_t byte : data) {
+        char32_t codePoint = byte;
+        if (encoding == TextEncoding::Ascii) {
+            if (byte > 0x7F) {
+                return decodingFailure(EncodingError::InvalidData);
+            }
+        } else if (encoding == TextEncoding::Windows1252 && byte >= 0x80) {
+            codePoint = win1252[byte - 0x80];
+        } else if (encoding == TextEncoding::CP437 && byte >= 0x80) {
+            codePoint = cp437[byte - 0x80];
+        }
+        appendUtf8(output, codePoint);
+    }
+
+    return doof::Result<std::string, EncodingError>::success(output);
+}
+
+inline std::string decodeTextBytesLossy(
+    const std::vector<uint8_t>& data,
+    TextEncoding encoding
+) {
+    std::string output;
+    if (encoding == TextEncoding::Utf8) {
+        std::string input(data.begin(), data.end());
+        size_t index = 0;
+        while (index < input.size()) {
+            char32_t codePoint = 0;
+            readUtf8CodePointLossy(input, index, codePoint);
+            appendUtf8(output, codePoint);
+        }
+        return output;
+    }
+
+    if (encoding == TextEncoding::Utf16LE || encoding == TextEncoding::Utf16BE) {
+        size_t index = 0;
+        while (index + 1 < data.size()) {
+            const uint16_t unit = readUtf16Unit(data, index, encoding);
+            if (unit >= 0xD800 && unit <= 0xDBFF) {
+                if (index + 3 < data.size()) {
+                    const uint16_t low = readUtf16Unit(data, index + 2, encoding);
+                    if (low >= 0xDC00 && low <= 0xDFFF) {
+                        const char32_t codePoint = 0x10000 + (((unit - 0xD800) << 10) | (low - 0xDC00));
+                        appendUtf8(output, codePoint);
+                        index += 4;
+                        continue;
+                    }
+                }
+                appendUtf8(output, 0xFFFD);
+            } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+                appendUtf8(output, 0xFFFD);
+            } else {
+                appendUtf8(output, unit);
+            }
+            index += 2;
+        }
+
+        if (index < data.size()) {
+            appendUtf8(output, 0xFFFD);
+        }
+        return output;
+    }
+
+    const auto& win1252 = windows1252Table();
+    const auto& cp437 = cp437Table();
+    for (uint8_t byte : data) {
+        char32_t codePoint = byte;
+        if (encoding == TextEncoding::Ascii) {
+            if (byte > 0x7F) {
+                codePoint = 0xFFFD;
+            }
+        } else if (encoding == TextEncoding::Windows1252 && byte >= 0x80) {
+            codePoint = win1252[byte - 0x80];
+        } else if (encoding == TextEncoding::CP437 && byte >= 0x80) {
+            codePoint = cp437[byte - 0x80];
+        }
+        appendUtf8(output, codePoint);
+    }
+
+    return output;
+}
+
 template <typename T>
 inline T byteSwap(T value) {
     std::array<uint8_t, sizeof(T)> bytes {};
@@ -145,6 +592,33 @@ public:
         }
 
         writeRaw(reinterpret_cast<const uint8_t*>(value.data()), value.size());
+    }
+
+    doof::Result<int32_t, EncodingError> writeText(const std::string& value, TextEncoding encoding) {
+        auto encoded = encodeTextBytes(value, encoding);
+        if (encoded.isFailure()) {
+            return encodingFailure(encoded.error());
+        }
+
+        const auto& bytes = encoded.value();
+        if (!checkedIntSize(bytes.size())) {
+            return encodingFailure(EncodingError::OutputTooLarge);
+        }
+        if (!bytes.empty()) {
+            writeRaw(bytes.data(), bytes.size());
+        }
+        return doof::Result<int32_t, EncodingError>::success(static_cast<int32_t>(bytes.size()));
+    }
+
+    int32_t writeTextLossy(const std::string& value, TextEncoding encoding) {
+        const auto bytes = encodeTextBytesLossy(value, encoding);
+        if (!checkedIntSize(bytes.size())) {
+            panicArgument("writeTextLossy output is too large to report as an int");
+        }
+        if (!bytes.empty()) {
+            writeRaw(bytes.data(), bytes.size());
+        }
+        return static_cast<int32_t>(bytes.size());
     }
 
     std::shared_ptr<std::vector<uint8_t>> build() {
@@ -256,6 +730,32 @@ public:
         std::string value(reinterpret_cast<const char*>(data_->data() + start), width);
         position_ = checkedAdvance(position_, width, "read position");
         return value;
+    }
+
+    doof::Result<std::string, EncodingError> readText(int64_t length, TextEncoding encoding) {
+        const size_t width = checkedSize(length, "read length");
+        ensureReadable(width, "readText");
+
+        const size_t start = checkedSize(position_, "position");
+        std::vector<uint8_t> bytes(data_->begin() + start, data_->begin() + start + width);
+        auto decoded = decodeTextBytes(bytes, encoding);
+        if (decoded.isFailure()) {
+            return decoded;
+        }
+
+        position_ = checkedAdvance(position_, width, "read position");
+        return decoded;
+    }
+
+    std::string readTextLossy(int64_t length, TextEncoding encoding) {
+        const size_t width = checkedSize(length, "read length");
+        ensureReadable(width, "readTextLossy");
+
+        const size_t start = checkedSize(position_, "position");
+        std::vector<uint8_t> bytes(data_->begin() + start, data_->begin() + start + width);
+        auto decoded = decodeTextBytesLossy(bytes, encoding);
+        position_ = checkedAdvance(position_, width, "read position");
+        return decoded;
     }
 
     std::optional<int64_t> findNextAny(const std::shared_ptr<std::vector<uint8_t>>& candidates) const {
