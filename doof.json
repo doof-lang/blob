@@ -1,5 +1,5 @@
 {
-  "name": "blob",
+  "name": "std/blob",
   "version": "0.1.0",
   "license": "ISC",
   "build": {
