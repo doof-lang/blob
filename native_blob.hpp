@@ -53,6 +53,25 @@ inline bool checkedIntSize(size_t value) {
     return value <= static_cast<size_t>(std::numeric_limits<int32_t>::max());
 }
 
+template <typename T>
+inline T checkedIntegerRange(int64_t value, const char* operation) {
+    if (value < static_cast<int64_t>(std::numeric_limits<T>::min()) ||
+        value > static_cast<int64_t>(std::numeric_limits<T>::max())) {
+        panicArgument(std::string(operation) + " value is outside the supported range");
+    }
+
+    return static_cast<T>(value);
+}
+
+template <typename T>
+inline T checkedUnsignedIntegerRange(int64_t value, const char* operation) {
+    if (value < 0 || static_cast<uint64_t>(value) > static_cast<uint64_t>(std::numeric_limits<T>::max())) {
+        panicArgument(std::string(operation) + " value is outside the supported range");
+    }
+
+    return static_cast<T>(value);
+}
+
 inline doof::Result<int32_t, EncodingError> encodingFailure(EncodingError error) {
     return doof::Result<int32_t, EncodingError>::failure(error);
 }
@@ -553,19 +572,37 @@ public:
         writeRaw(&value, sizeof(value));
     }
 
+    void writeSignedByte(int32_t value) {
+        writeScalar(checkedIntegerRange<int8_t>(value, "writeSignedByte"));
+    }
+
     void writeBool(bool value) {
         const uint8_t raw = value ? 1 : 0;
         writeRaw(&raw, sizeof(raw));
     }
 
+    void writeShort(int32_t value) {
+        writeScalar(checkedIntegerRange<int16_t>(value, "writeShort"));
+    }
+
+    void writeUnsignedShort(int32_t value) {
+        writeScalar(checkedUnsignedIntegerRange<uint16_t>(value, "writeUnsignedShort"));
+    }
+
     void writeInt(int32_t value) {
-        const int32_t encoded = convertEndian(value, endianness_);
-        writeRaw(reinterpret_cast<const uint8_t*>(&encoded), sizeof(encoded));
+        writeScalar(value);
+    }
+
+    void writeUnsignedInt(int64_t value) {
+        writeScalar(checkedUnsignedIntegerRange<uint32_t>(value, "writeUnsignedInt"));
     }
 
     void writeLong(int64_t value) {
-        const int64_t encoded = convertEndian(value, endianness_);
-        writeRaw(reinterpret_cast<const uint8_t*>(&encoded), sizeof(encoded));
+        writeScalar(value);
+    }
+
+    void writeUnsignedLong(int64_t value) {
+        writeScalar(static_cast<uint64_t>(value));
     }
 
     void writeFloat(float value) {
@@ -648,6 +685,12 @@ private:
         position_ = endPosition;
     }
 
+    template <typename T>
+    void writeScalar(T value) {
+        const T encoded = convertEndian(value, endianness_);
+        writeRaw(reinterpret_cast<const uint8_t*>(&encoded), sizeof(encoded));
+    }
+
     std::vector<uint8_t> buffer_;
     int64_t position_;
     Endian endianness_;
@@ -696,12 +739,35 @@ public:
         return readByte() != 0;
     }
 
+    int32_t readSignedByte() {
+        return static_cast<int32_t>(readScalar<int8_t>("readSignedByte"));
+    }
+
+    int32_t readShort() {
+        return static_cast<int32_t>(readScalar<int16_t>("readShort"));
+    }
+
+    int32_t readUnsignedShort() {
+        return static_cast<int32_t>(readScalar<uint16_t>("readUnsignedShort"));
+    }
+
     int32_t readInt() {
         return readScalar<int32_t>("readInt");
     }
 
+    int64_t readUnsignedInt() {
+        return static_cast<int64_t>(readScalar<uint32_t>("readUnsignedInt"));
+    }
+
     int64_t readLong() {
         return readScalar<int64_t>("readLong");
+    }
+
+    int64_t readUnsignedLong() {
+        const uint64_t value = readScalar<uint64_t>("readUnsignedLong");
+        int64_t result {};
+        std::memcpy(&result, &value, sizeof(result));
+        return result;
     }
 
     float readFloat() {

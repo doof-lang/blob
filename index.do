@@ -6,8 +6,12 @@ export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobB
   setPosition(position: long): void
   length(): long
   writeByte(value: byte): void
+  writeSignedByte(value: int): void
   writeBool(value: bool): void
+  writeShort(value: int): void
+  writeUnsignedShort(value: int): void
   writeInt(value: int): void
+  writeUnsignedInt(value: long): void
   writeLong(value: long): void
   writeFloat(value: float): void
   writeDouble(value: double): void
@@ -25,8 +29,12 @@ export import class BlobReader from "native_blob.hpp" as doof_blob::NativeBlobRe
   length(): long
   remaining(): long
   readByte(): byte
+  readSignedByte(): int
   readBool(): bool
+  readShort(): int
+  readUnsignedShort(): int
   readInt(): int
+  readUnsignedInt(): long
   readLong(): long
   readFloat(): float
   readDouble(): double

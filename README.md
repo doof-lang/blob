@@ -80,8 +80,12 @@ BlobBuilder { size: 256L, endianness: .LittleEndian }
 | `setPosition(position: long): void` | — | Move the write cursor; zero-fills gaps |
 | `length(): long` | `long` | Current byte length of the buffer |
 | `writeByte(value: byte): void` | — | Write a single byte |
+| `writeSignedByte(value: int): void` | — | Write an 8-bit signed integer (`-128` to `127`) |
 | `writeBool(value: bool): void` | — | Write a boolean as one byte |
+| `writeShort(value: int): void` | — | Write a 16-bit signed integer |
+| `writeUnsignedShort(value: int): void` | — | Write a 16-bit unsigned integer |
 | `writeInt(value: int): void` | — | Write a 32-bit signed integer |
+| `writeUnsignedInt(value: long): void` | — | Write a 32-bit unsigned integer |
 | `writeLong(value: long): void` | — | Write a 64-bit signed integer |
 | `writeFloat(value: float): void` | — | Write a 32-bit float |
 | `writeDouble(value: double): void` | — | Write a 64-bit float |
@@ -113,8 +117,12 @@ BlobReader { data: bytes, endianness: .BigEndian }
 | `length(): long` | `long` | Total byte length of the data |
 | `remaining(): long` | `long` | Unread bytes remaining |
 | `readByte(): byte` | `byte` | Read one byte |
+| `readSignedByte(): int` | `int` | Read an 8-bit signed integer |
 | `readBool(): bool` | `bool` | Read one byte as boolean |
+| `readShort(): int` | `int` | Read a 16-bit signed integer |
+| `readUnsignedShort(): int` | `int` | Read a 16-bit unsigned integer |
 | `readInt(): int` | `int` | Read a 32-bit signed integer |
+| `readUnsignedInt(): long` | `long` | Read a 32-bit unsigned integer |
 | `readLong(): long` | `long` | Read a 64-bit signed integer |
 | `readFloat(): float` | `float` | Read a 32-bit float |
 | `readDouble(): double` | `double` | Read a 64-bit float |

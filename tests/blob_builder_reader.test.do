@@ -85,6 +85,66 @@ export function testAll() {
   assert(searchReader.findNextAny(searchCandidates) == null, "expected search to return null when no match remains")
 }
 
+export function testSignedAndUnsignedIntegerMethods(): void {
+  bigBuilder := BlobBuilder { endianness: .BigEndian }
+  bigBuilder.writeSignedByte(-1)
+  bigBuilder.writeSignedByte(127)
+  bigBuilder.writeShort(-2)
+  bigBuilder.writeShort(32767)
+  bigBuilder.writeUnsignedShort(65535)
+  bigBuilder.writeUnsignedInt(4294967295L)
+
+  bigBytes := bigBuilder.build()
+  expectedBig: readonly byte[] := [
+    255,
+    127,
+    255, 254,
+    127, 255,
+    255, 255,
+    255, 255, 255, 255,
+  ]
+  assertBytes(bigBytes, expectedBig)
+
+  bigReader := BlobReader { data: bigBytes, endianness: .BigEndian }
+  assert(bigReader.readSignedByte() == -1, "expected signed byte -1 to round-trip")
+  assert(bigReader.readSignedByte() == 127, "expected signed byte max to round-trip")
+  assert(bigReader.readShort() == -2, "expected signed short -2 to round-trip")
+  assert(bigReader.readShort() == 32767, "expected signed short max to round-trip")
+  assert(bigReader.readUnsignedShort() == 65535, "expected unsigned short max to round-trip")
+  assert(bigReader.readUnsignedInt() == 4294967295L, "expected unsigned int max to round-trip")
+  assert(bigReader.getPosition() == bigReader.length(), "expected new big-endian reads to advance position")
+  assert(bigReader.remaining() == 0L, "expected new big-endian reads to consume all bytes")
+
+  littleBuilder := BlobBuilder { endianness: .LittleEndian }
+  littleBuilder.writeSignedByte(-1)
+  littleBuilder.writeSignedByte(127)
+  littleBuilder.writeShort(-2)
+  littleBuilder.writeShort(32767)
+  littleBuilder.writeUnsignedShort(65535)
+  littleBuilder.writeUnsignedInt(4294967295L)
+
+  littleBytes := littleBuilder.build()
+  expectedLittle: readonly byte[] := [
+    255,
+    127,
+    254, 255,
+    255, 127,
+    255, 255,
+    255, 255, 255, 255,
+  ]
+  assertBytes(littleBytes, expectedLittle)
+
+  littleReader := BlobReader { data: littleBytes, endianness: .LittleEndian }
+  assert(littleReader.readSignedByte() == -1, "expected little-endian signed byte -1 to round-trip")
+  assert(littleReader.readSignedByte() == 127, "expected little-endian signed byte max to round-trip")
+  assert(littleReader.readShort() == -2, "expected little-endian signed short -2 to round-trip")
+  assert(littleReader.readShort() == 32767, "expected little-endian signed short max to round-trip")
+  assert(littleReader.readUnsignedShort() == 65535, "expected little-endian unsigned short max to round-trip")
+  assert(littleReader.readUnsignedInt() == 4294967295L, "expected little-endian unsigned int max to round-trip")
+  assert(littleReader.getPosition() == littleReader.length(), "expected new little-endian reads to advance position")
+  assert(littleReader.remaining() == 0L, "expected new little-endian reads to consume all bytes")
+}
+
 export function testTextEncodingsRoundTrip(): void {
   builder := BlobBuilder()
   assert((try! builder.writeText("hé", .Utf8)) == 3, "expected UTF-8 byte count")
