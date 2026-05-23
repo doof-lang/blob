@@ -1,7 +1,7 @@
 export { EncodingError, Endian, TextEncoding } from "./types"
 
 export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobBuilder {
-  static create(size: long = 0L, endianness: Endian = .LittleEndian): BlobBuilder
+  static constructor(size: long = 0L, endianness: Endian = .LittleEndian): BlobBuilder
   getPosition(): long
   setPosition(position: long): void
   length(): long
@@ -23,7 +23,7 @@ export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobB
 }
 
 export import class BlobReader from "native_blob.hpp" as doof_blob::NativeBlobReader {
-  static create(data: readonly byte[], endianness: Endian = .LittleEndian): BlobReader
+  static constructor(data: readonly byte[], endianness: Endian = .LittleEndian): BlobReader
   getPosition(): long
   setPosition(position: long): void
   length(): long

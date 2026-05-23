@@ -549,7 +549,7 @@ inline T convertEndian(T value, Endian endianness) {
 
 class NativeBlobBuilder {
 public:
-    static std::shared_ptr<NativeBlobBuilder> create(int64_t size, Endian endianness) {
+    static std::shared_ptr<NativeBlobBuilder> constructor(int64_t size, Endian endianness) {
         auto builder = std::shared_ptr<NativeBlobBuilder>(new NativeBlobBuilder(endianness));
         builder->buffer_.reserve(checkedSize(size, "builder size"));
         return builder;
@@ -698,7 +698,7 @@ private:
 
 class NativeBlobReader {
 public:
-    static std::shared_ptr<NativeBlobReader> create(
+    static std::shared_ptr<NativeBlobReader> constructor(
         const std::shared_ptr<std::vector<uint8_t>>& data,
         Endian endianness
     ) {
