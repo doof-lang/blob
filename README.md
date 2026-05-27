@@ -79,6 +79,8 @@ BlobBuilder { size: 256L, endianness: .LittleEndian }
 | `getPosition(): long` | `long` | Current write cursor position |
 | `setPosition(position: long): void` | — | Move the write cursor; zero-fills gaps |
 | `length(): long` | `long` | Current byte length of the buffer |
+| `writeZeroes(length: long): void` | — | Write `length` zero bytes |
+| `align(width: long): void` | — | Move the write cursor to the next `width` byte boundary, zero-filling as needed |
 | `writeByte(value: byte): void` | — | Write a single byte |
 | `writeSignedByte(value: int): void` | — | Write an 8-bit signed integer (`-128` to `127`) |
 | `writeBool(value: bool): void` | — | Write a boolean as one byte |
@@ -108,6 +110,12 @@ BlobReader(data)                                  // default: LittleEndian, offs
 BlobReader { data: bytes, endianness: .BigEndian }
 ```
 
+#### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | `readonly byte[]` | Backing bytes being read |
+
 #### Methods
 
 | Method | Return | Description |
@@ -116,6 +124,9 @@ BlobReader { data: bytes, endianness: .BigEndian }
 | `setPosition(position: long): void` | — | Seek to an absolute byte offset |
 | `length(): long` | `long` | Total byte length of the data |
 | `remaining(): long` | `long` | Unread bytes remaining |
+| `peekByte(): byte` | `byte` | Read the next byte without advancing the cursor |
+| `skip(length: long): void` | — | Advance the read cursor by `length` bytes |
+| `align(width: long): void` | — | Advance the read cursor to the next `width` byte boundary |
 | `readByte(): byte` | `byte` | Read one byte |
 | `readSignedByte(): int` | `int` | Read an 8-bit signed integer |
 | `readBool(): bool` | `bool` | Read one byte as boolean |

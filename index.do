@@ -5,6 +5,8 @@ export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobB
   getPosition(): long
   setPosition(position: long): void
   length(): long
+  writeZeroes(length: long): void
+  align(width: long): void
   writeByte(value: byte): void
   writeSignedByte(value: int): void
   writeBool(value: bool): void
@@ -23,11 +25,15 @@ export import class BlobBuilder from "native_blob.hpp" as doof_blob::NativeBlobB
 }
 
 export import class BlobReader from "native_blob.hpp" as doof_blob::NativeBlobReader {
+  data: readonly byte[]
   static constructor(data: readonly byte[], endianness: Endian = .LittleEndian): BlobReader
   getPosition(): long
   setPosition(position: long): void
   length(): long
   remaining(): long
+  peekByte(): byte
+  skip(length: long): void
+  align(width: long): void
   readByte(): byte
   readSignedByte(): int
   readBool(): bool

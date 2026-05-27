@@ -40,6 +40,16 @@ export function testAll() {
   expectedGap: readonly byte[] := [0, 0, 7]
   assertBytes(gapBytes, expectedGap)
 
+  paddingBuilder := BlobBuilder()
+  paddingBuilder.writeByte(1)
+  paddingBuilder.writeZeroes(2L)
+  paddingBuilder.writeByte(2)
+  paddingBuilder.align(8L)
+  paddingBuilder.writeByte(3)
+  paddingBytes := paddingBuilder.build()
+  expectedPadding: readonly byte[] := [1, 0, 0, 2, 0, 0, 0, 0, 3]
+  assertBytes(paddingBytes, expectedPadding)
+
   littleBuilder := BlobBuilder { endianness: .LittleEndian }
   payloadPrefix: readonly byte[] := [9, 8, 7]
   littleBuilder.writeBytes(payloadPrefix)
@@ -69,6 +79,18 @@ export function testAll() {
   assert(reader.readDouble() == 12.5, "expected double payload to round-trip")
   assert(reader.readString(3L) == "hé", "expected UTF-8 string payload to round-trip")
   assert(reader.remaining() == 0L, "expected all bytes to be consumed")
+
+  cursorReader := BlobReader([10, 20, 30, 40, 50])
+  expectedCursorData: readonly byte[] := [10, 20, 30, 40, 50]
+  assertBytes(cursorReader.data, expectedCursorData)
+  assert(cursorReader.peekByte() == 10, "expected peekByte to read the next byte")
+  assert(cursorReader.getPosition() == 0L, "expected peekByte to leave the reader position unchanged")
+  cursorReader.skip(1L)
+  assert(cursorReader.peekByte() == 20, "expected skip to advance the reader")
+  cursorReader.align(4L)
+  assert(cursorReader.getPosition() == 4L, "expected reader align to advance to the next boundary")
+  assert(cursorReader.readByte() == 50, "expected aligned reader to read from the aligned position")
+  assert(cursorReader.remaining() == 0L, "expected aligned read to consume all remaining bytes")
 
   searchCandidates: readonly byte[] := [30, 50]
   searchData: readonly byte[] := [10, 20, 30, 40, 50]

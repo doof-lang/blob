@@ -49,6 +49,27 @@ inline int64_t checkedAdvance(int64_t start, size_t width, const char* context) 
     return start + static_cast<int64_t>(width);
 }
 
+inline int64_t alignedPosition(int64_t position, int64_t width) {
+    if (width <= 0) {
+        panicArgument("alignment width must be positive");
+    }
+
+    const uint64_t unsignedPosition = static_cast<uint64_t>(position);
+    const uint64_t unsignedWidth = static_cast<uint64_t>(width);
+    const uint64_t remainder = unsignedPosition % unsignedWidth;
+    if (remainder == 0) {
+        return position;
+    }
+
+    const uint64_t delta = unsignedWidth - remainder;
+    constexpr uint64_t maxLong = static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+    if (unsignedPosition > maxLong - delta) {
+        panicArgument("aligned position exceeds the supported blob size");
+    }
+
+    return static_cast<int64_t>(unsignedPosition + delta);
+}
+
 inline bool checkedIntSize(size_t value) {
     return value <= static_cast<size_t>(std::numeric_limits<int32_t>::max());
 }
@@ -568,6 +589,24 @@ public:
         return static_cast<int64_t>(buffer_.size());
     }
 
+    void writeZeroes(int64_t length) {
+        const size_t width = checkedSize(length, "writeZeroes length");
+        const int64_t endPosition = checkedAdvance(position_, width, "write position");
+        ensureSize(endPosition);
+        if (width > 0) {
+            std::fill(
+                buffer_.begin() + checkedSize(position_, "position"),
+                buffer_.begin() + checkedSize(endPosition, "position"),
+                0
+            );
+        }
+        position_ = endPosition;
+    }
+
+    void align(int64_t width) {
+        setPosition(alignedPosition(position_, width));
+    }
+
     void writeByte(uint8_t value) {
         writeRaw(&value, sizeof(value));
     }
@@ -599,10 +638,6 @@ public:
 
     void writeLong(int64_t value) {
         writeScalar(value);
-    }
-
-    void writeUnsignedLong(int64_t value) {
-        writeScalar(static_cast<uint64_t>(value));
     }
 
     void writeFloat(float value) {
@@ -705,15 +740,17 @@ public:
         return std::shared_ptr<NativeBlobReader>(new NativeBlobReader(data, endianness));
     }
 
+    std::shared_ptr<std::vector<uint8_t>> data;
+
     int64_t getPosition() const {
         return position_;
     }
 
     void setPosition(int64_t position) {
-        if (position < 0 || static_cast<uint64_t>(position) > static_cast<uint64_t>(data_->size())) {
+        if (position < 0 || static_cast<uint64_t>(position) > static_cast<uint64_t>(data->size())) {
             panicArgument(
                 "reader position " + std::to_string(position) +
-                " is outside the blob bounds (length " + std::to_string(data_->size()) + ")"
+                " is outside the blob bounds (length " + std::to_string(data->size()) + ")"
             );
         }
 
@@ -721,16 +758,34 @@ public:
     }
 
     int64_t length() const {
-        return static_cast<int64_t>(data_->size());
+        return static_cast<int64_t>(data->size());
     }
 
     int64_t remaining() const {
-        return static_cast<int64_t>(data_->size()) - position_;
+        return static_cast<int64_t>(data->size()) - position_;
+    }
+
+    uint8_t peekByte() const {
+        ensureReadable(sizeof(uint8_t), "peekByte");
+        return (*data)[checkedSize(position_, "position")];
+    }
+
+    void skip(int64_t length) {
+        const size_t width = checkedSize(length, "skip length");
+        ensureReadable(width, "skip");
+        position_ = checkedAdvance(position_, width, "read position");
+    }
+
+    void align(int64_t width) {
+        const int64_t aligned = alignedPosition(position_, width);
+        const size_t advance = checkedSize(aligned - position_, "alignment advance");
+        ensureReadable(advance, "align");
+        position_ = aligned;
     }
 
     uint8_t readByte() {
         ensureReadable(sizeof(uint8_t), "readByte");
-        const uint8_t value = (*data_)[checkedSize(position_, "position")];
+        const uint8_t value = (*data)[checkedSize(position_, "position")];
         position_ = checkedAdvance(position_, sizeof(uint8_t), "read position");
         return value;
     }
@@ -763,13 +818,6 @@ public:
         return readScalar<int64_t>("readLong");
     }
 
-    int64_t readUnsignedLong() {
-        const uint64_t value = readScalar<uint64_t>("readUnsignedLong");
-        int64_t result {};
-        std::memcpy(&result, &value, sizeof(result));
-        return result;
-    }
-
     float readFloat() {
         return readScalar<float>("readFloat");
     }
@@ -783,7 +831,7 @@ public:
         ensureReadable(width, "readBytes");
 
         const size_t start = checkedSize(position_, "position");
-        auto result = std::make_shared<std::vector<uint8_t>>(data_->begin() + start, data_->begin() + start + width);
+        auto result = std::make_shared<std::vector<uint8_t>>(data->begin() + start, data->begin() + start + width);
         position_ = checkedAdvance(position_, width, "read position");
         return result;
     }
@@ -793,7 +841,7 @@ public:
         ensureReadable(width, "readString");
 
         const size_t start = checkedSize(position_, "position");
-        std::string value(reinterpret_cast<const char*>(data_->data() + start), width);
+        std::string value(reinterpret_cast<const char*>(data->data() + start), width);
         position_ = checkedAdvance(position_, width, "read position");
         return value;
     }
@@ -803,7 +851,7 @@ public:
         ensureReadable(width, "readText");
 
         const size_t start = checkedSize(position_, "position");
-        std::vector<uint8_t> bytes(data_->begin() + start, data_->begin() + start + width);
+        std::vector<uint8_t> bytes(data->begin() + start, data->begin() + start + width);
         auto decoded = decodeTextBytes(bytes, encoding);
         if (decoded.isFailure()) {
             return decoded;
@@ -818,7 +866,7 @@ public:
         ensureReadable(width, "readTextLossy");
 
         const size_t start = checkedSize(position_, "position");
-        std::vector<uint8_t> bytes(data_->begin() + start, data_->begin() + start + width);
+        std::vector<uint8_t> bytes(data->begin() + start, data->begin() + start + width);
         auto decoded = decodeTextBytesLossy(bytes, encoding);
         position_ = checkedAdvance(position_, width, "read position");
         return decoded;
@@ -835,8 +883,8 @@ public:
         }
 
         const size_t start = checkedSize(position_, "position");
-        for (size_t index = start; index < data_->size(); index++) {
-            if (candidateSet[(*data_)[index]]) {
+        for (size_t index = start; index < data->size(); index++) {
+            if (candidateSet[(*data)[index]]) {
                 return static_cast<int64_t>(index);
             }
         }
@@ -846,12 +894,12 @@ public:
 
 private:
     NativeBlobReader(const std::shared_ptr<std::vector<uint8_t>>& data, Endian endianness)
-        : data_(data ? data : std::make_shared<std::vector<uint8_t>>()), position_(0), endianness_(endianness) {}
+        : data(data ? data : std::make_shared<std::vector<uint8_t>>()), position_(0), endianness_(endianness) {}
 
     void ensureReadable(size_t width, const char* operation) const {
         const size_t start = checkedSize(position_, "position");
-        if (start > data_->size() || width > data_->size() - start) {
-            panicReadOutOfBounds(operation, position_, width, data_->size());
+        if (start > data->size() || width > data->size() - start) {
+            panicReadOutOfBounds(operation, position_, width, data->size());
         }
     }
 
@@ -861,12 +909,11 @@ private:
 
         const size_t start = checkedSize(position_, "position");
         T encoded {};
-        std::memcpy(&encoded, data_->data() + start, sizeof(T));
+        std::memcpy(&encoded, data->data() + start, sizeof(T));
         position_ = checkedAdvance(position_, sizeof(T), "read position");
         return convertEndian(encoded, endianness_);
     }
 
-    std::shared_ptr<std::vector<uint8_t>> data_;
     int64_t position_;
     Endian endianness_;
 };
