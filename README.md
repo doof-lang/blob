@@ -2,6 +2,11 @@
 
 Binary data serialization and deserialization. Provides `BlobBuilder` for writing typed values into a byte buffer and `BlobReader` for reading them back, with configurable byte-order (endianness).
 
+## Documentation
+
+- [Guide and API reference](docs/API.md) explains byte order, cursor behavior, text encodings, lossy conversion, and the builder/reader API.
+- Tests can be run with `doof test blob`.
+
 ## Usage
 
 ```doof
