@@ -94,11 +94,11 @@ inline T checkedUnsignedIntegerRange(int64_t value, const char* operation) {
 }
 
 inline doof::Result<int32_t, EncodingError> encodingFailure(EncodingError error) {
-    return doof::Result<int32_t, EncodingError>::failure(error);
+    return doof::Failure<EncodingError>{error};
 }
 
 inline doof::Result<std::string, EncodingError> decodingFailure(EncodingError error) {
-    return doof::Result<std::string, EncodingError>::failure(error);
+    return doof::Failure<EncodingError>{error};
 }
 
 inline const std::array<char32_t, 128>& windows1252Table() {
@@ -264,26 +264,26 @@ inline doof::Result<std::vector<uint8_t>, EncodingError> encodeTextBytes(const s
     std::vector<uint8_t> output;
     if (encoding == TextEncoding::Utf8) {
         if (!checkedIntSize(value.size())) {
-            return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::OutputTooLarge);
+            return doof::Failure<EncodingError>{EncodingError::OutputTooLarge};
         }
 
         size_t index = 0;
         char32_t ignored = 0;
         while (index < value.size()) {
             if (!readUtf8CodePoint(value, index, ignored)) {
-                return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::InvalidData);
+                return doof::Failure<EncodingError>{EncodingError::InvalidData};
             }
         }
 
         output.assign(value.begin(), value.end());
-        return doof::Result<std::vector<uint8_t>, EncodingError>::success(output);
+        return doof::Success<std::vector<uint8_t>>{output};
     }
 
     size_t index = 0;
     while (index < value.size()) {
         char32_t codePoint = 0;
         if (!readUtf8CodePoint(value, index, codePoint)) {
-            return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::InvalidData);
+            return doof::Failure<EncodingError>{EncodingError::InvalidData};
         }
 
         if (encoding == TextEncoding::Utf16LE || encoding == TextEncoding::Utf16BE) {
@@ -323,15 +323,15 @@ inline doof::Result<std::vector<uint8_t>, EncodingError> encodeTextBytes(const s
         }
 
         if (!encoded.has_value()) {
-            return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::UnrepresentableCharacter);
+            return doof::Failure<EncodingError>{EncodingError::UnrepresentableCharacter};
         }
         output.push_back(encoded.value());
     }
 
     if (!checkedIntSize(output.size())) {
-        return doof::Result<std::vector<uint8_t>, EncodingError>::failure(EncodingError::OutputTooLarge);
+        return doof::Failure<EncodingError>{EncodingError::OutputTooLarge};
     }
-    return doof::Result<std::vector<uint8_t>, EncodingError>::success(output);
+    return doof::Success<std::vector<uint8_t>>{output};
 }
 
 inline std::vector<uint8_t> encodeTextBytesLossy(const std::string& value, TextEncoding encoding) {
@@ -421,7 +421,7 @@ inline doof::Result<std::string, EncodingError> decodeTextBytes(
                 return decodingFailure(EncodingError::InvalidData);
             }
         }
-        return doof::Result<std::string, EncodingError>::success(output);
+        return doof::Success<std::string>{output};
     }
 
     if (encoding == TextEncoding::Utf16LE || encoding == TextEncoding::Utf16BE) {
@@ -450,7 +450,7 @@ inline doof::Result<std::string, EncodingError> decodeTextBytes(
                 appendUtf8(output, unit);
             }
         }
-        return doof::Result<std::string, EncodingError>::success(output);
+        return doof::Success<std::string>{output};
     }
 
     const auto& win1252 = windows1252Table();
@@ -469,7 +469,7 @@ inline doof::Result<std::string, EncodingError> decodeTextBytes(
         appendUtf8(output, codePoint);
     }
 
-    return doof::Result<std::string, EncodingError>::success(output);
+    return doof::Success<std::string>{output};
 }
 
 inline std::string decodeTextBytesLossy(
@@ -668,18 +668,18 @@ public:
 
     doof::Result<int32_t, EncodingError> writeText(const std::string& value, TextEncoding encoding) {
         auto encoded = encodeTextBytes(value, encoding);
-        if (encoded.isFailure()) {
-            return encodingFailure(encoded.error());
+        if (is_failure(encoded)) {
+            return encodingFailure(failure_error(encoded));
         }
 
-        const auto& bytes = encoded.value();
+        const auto& bytes = success_value(encoded);
         if (!checkedIntSize(bytes.size())) {
             return encodingFailure(EncodingError::OutputTooLarge);
         }
         if (!bytes.empty()) {
             writeRaw(bytes.data(), bytes.size());
         }
-        return doof::Result<int32_t, EncodingError>::success(static_cast<int32_t>(bytes.size()));
+        return doof::Success<int32_t>{static_cast<int32_t>(bytes.size())};
     }
 
     int32_t writeTextLossy(const std::string& value, TextEncoding encoding) {
@@ -853,7 +853,7 @@ public:
         const size_t start = checkedSize(position_, "position");
         std::vector<uint8_t> bytes(data->begin() + start, data->begin() + start + width);
         auto decoded = decodeTextBytes(bytes, encoding);
-        if (decoded.isFailure()) {
+        if (is_failure(decoded)) {
             return decoded;
         }
 
