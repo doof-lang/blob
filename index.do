@@ -50,3 +50,8 @@ export import class BlobReader from "native_blob.hpp" as doof_blob::NativeBlobRe
   readTextLossy(length: long, encoding: TextEncoding = .Utf8): string
   findNextAny(candidates: readonly byte[]): long | null
 }
+
+export function decodeUtf8(data: readonly byte[]): Result<string, EncodingError> {
+  reader := BlobReader(data)
+  return reader.readText(data.length, .Utf8)
+}
