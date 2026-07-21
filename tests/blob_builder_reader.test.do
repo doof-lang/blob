@@ -1,6 +1,6 @@
 import { BlobBuilder, BlobReader, EncodingError, Endian, TextEncoding } from "../index"
 
-function assertBytes(actual: readonly byte[], expected: readonly byte[]): void {
+function assertBytes(actual: readonly byte[], expected: readonly byte[]): none {
   assert(actual.length == expected.length, "expected blob lengths to match")
 
   for index of 0..<actual.length {
@@ -15,7 +15,7 @@ function isFailure<T, E>(result: Result<T, E>): bool {
   }
 }
 
-function assertEncodingError<T>(result: Result<T, EncodingError>, expected: EncodingError): void {
+function assertEncodingError<T>(result: Result<T, EncodingError>, expected: EncodingError): none {
   return case result {
     _: Success -> assert(false, "expected encoding operation to fail"),
     failure: Failure -> assert(failure.error == expected, "expected encoding error to match"),
@@ -96,18 +96,18 @@ export function testAll() {
   searchData: readonly byte[] := [10, 20, 30, 40, 50]
   searchReader := BlobReader(searchData)
   firstFound := searchReader.findNextAny(searchCandidates)
-  assert(firstFound != null && firstFound == 2L, "expected search to find the first matching byte")
+  assert(firstFound != none && firstFound == 2L, "expected search to find the first matching byte")
   assert(searchReader.getPosition() == 0L, "expected search to leave the reader position unchanged")
 
   searchReader.setPosition(3L)
   laterFound := searchReader.findNextAny(searchCandidates)
-  assert(laterFound != null && laterFound == 4L, "expected search to start from the current reader position")
+  assert(laterFound != none && laterFound == 4L, "expected search to start from the current reader position")
 
   searchReader.setPosition(5L)
-  assert(searchReader.findNextAny(searchCandidates) == null, "expected search to return null when no match remains")
+  assert(searchReader.findNextAny(searchCandidates) == none, "expected search to return null when no match remains")
 }
 
-export function testSignedAndUnsignedIntegerMethods(): void {
+export function testSignedAndUnsignedIntegerMethods(): none {
   bigBuilder := BlobBuilder { endianness: .BigEndian }
   bigBuilder.writeSignedByte(-1)
   bigBuilder.writeSignedByte(127)
@@ -167,7 +167,7 @@ export function testSignedAndUnsignedIntegerMethods(): void {
   assert(littleReader.remaining() == 0L, "expected new little-endian reads to consume all bytes")
 }
 
-export function testTextEncodingsRoundTrip(): void {
+export function testTextEncodingsRoundTrip(): none {
   builder := BlobBuilder()
   assert((try! builder.writeText("hé", .Utf8)) == 3, "expected UTF-8 byte count")
   assert((try! builder.writeText("AΩ", .Utf16LE)) == 4, "expected UTF-16LE byte count")
@@ -200,7 +200,7 @@ export function testTextEncodingsRoundTrip(): void {
   assert(reader.remaining() == 0L, "expected text reads to consume all bytes")
 }
 
-export function testTextEncodingFailures(): void {
+export function testTextEncodingFailures(): none {
   builder := BlobBuilder()
   assertEncodingError(builder.writeText("é", .Ascii), .UnrepresentableCharacter)
   assert(builder.length() == 0L, "expected failed writeText to leave builder unchanged")
@@ -218,7 +218,7 @@ export function testTextEncodingFailures(): void {
   assert(isFailure(builder.writeText("Ω", .Latin1)), "expected Latin1 to reject unrepresentable text")
 }
 
-export function testTextEncodingLossyWritesReplacementQuestionMarks(): void {
+export function testTextEncodingLossyWritesReplacementQuestionMarks(): none {
   builder := BlobBuilder()
   assert(builder.writeTextLossy("héΩ", .Ascii) == 3, "expected ASCII lossy byte count")
   assert(builder.writeTextLossy("AΩ", .Latin1) == 2, "expected Latin1 lossy byte count")
@@ -232,7 +232,7 @@ export function testTextEncodingLossyWritesReplacementQuestionMarks(): void {
   assertBytes(builder.build(), expected)
 }
 
-export function testTextEncodingLossyReadsReplacementCharacters(): void {
+export function testTextEncodingLossyReadsReplacementCharacters(): none {
   asciiReader := BlobReader([65, 128, 66])
   assert(asciiReader.readTextLossy(3L, .Ascii) == "A�B", "expected invalid ASCII bytes to decode lossily")
   assert(asciiReader.getPosition() == 3L, "expected lossy ASCII read to advance")
