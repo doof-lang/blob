@@ -169,13 +169,13 @@ export function testSignedAndUnsignedIntegerMethods(): none {
 
 export function testTextEncodingsRoundTrip(): none {
   builder := BlobBuilder()
-  assert((try! builder.writeText("hé", .Utf8)) == 3, "expected UTF-8 byte count")
-  assert((try! builder.writeText("AΩ", .Utf16LE)) == 4, "expected UTF-16LE byte count")
-  assert((try! builder.writeText("€", .Utf16BE)) == 2, "expected UTF-16BE byte count")
-  assert((try! builder.writeText("é", .Latin1)) == 1, "expected Latin1 byte count")
-  assert((try! builder.writeText("€", .Windows1252)) == 1, "expected Windows-1252 byte count")
-  assert((try! builder.writeText("Ç", .CP437)) == 1, "expected CP437 byte count")
-  assert((try! builder.writeText("ASCII", .Ascii)) == 5, "expected ASCII byte count")
+  assert((builder.writeText("hé", .Utf8)!) == 3, "expected UTF-8 byte count")
+  assert((builder.writeText("AΩ", .Utf16LE)!) == 4, "expected UTF-16LE byte count")
+  assert((builder.writeText("€", .Utf16BE)!) == 2, "expected UTF-16BE byte count")
+  assert((builder.writeText("é", .Latin1)!) == 1, "expected Latin1 byte count")
+  assert((builder.writeText("€", .Windows1252)!) == 1, "expected Windows-1252 byte count")
+  assert((builder.writeText("Ç", .CP437)!) == 1, "expected CP437 byte count")
+  assert((builder.writeText("ASCII", .Ascii)!) == 5, "expected ASCII byte count")
 
   bytes := builder.build()
   expected: readonly byte[] := [
@@ -190,13 +190,13 @@ export function testTextEncodingsRoundTrip(): none {
   assertBytes(bytes, expected)
 
   reader := BlobReader(bytes)
-  assert((try! reader.readText(3L, .Utf8)) == "hé", "expected UTF-8 text to round-trip")
-  assert((try! reader.readText(4L, .Utf16LE)) == "AΩ", "expected UTF-16LE text to round-trip")
-  assert((try! reader.readText(2L, .Utf16BE)) == "€", "expected UTF-16BE text to round-trip")
-  assert((try! reader.readText(1L, .Latin1)) == "é", "expected Latin1 text to round-trip")
-  assert((try! reader.readText(1L, .Windows1252)) == "€", "expected Windows-1252 text to round-trip")
-  assert((try! reader.readText(1L, .CP437)) == "Ç", "expected CP437 text to round-trip")
-  assert((try! reader.readText(5L, .Ascii)) == "ASCII", "expected ASCII text to round-trip")
+  assert((reader.readText(3L, .Utf8)!) == "hé", "expected UTF-8 text to round-trip")
+  assert((reader.readText(4L, .Utf16LE)!) == "AΩ", "expected UTF-16LE text to round-trip")
+  assert((reader.readText(2L, .Utf16BE)!) == "€", "expected UTF-16BE text to round-trip")
+  assert((reader.readText(1L, .Latin1)!) == "é", "expected Latin1 text to round-trip")
+  assert((reader.readText(1L, .Windows1252)!) == "€", "expected Windows-1252 text to round-trip")
+  assert((reader.readText(1L, .CP437)!) == "Ç", "expected CP437 text to round-trip")
+  assert((reader.readText(5L, .Ascii)!) == "ASCII", "expected ASCII text to round-trip")
   assert(reader.remaining() == 0L, "expected text reads to consume all bytes")
 }
 
