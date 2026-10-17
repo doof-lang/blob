@@ -16,7 +16,7 @@ import { BlobBuilder, BlobReader, Endian, TextEncoding } from "std/blob"
 builder := BlobBuilder { endianness: .BigEndian }
 builder.writeInt(16909060)
 builder.writeByte(5)
-try! builder.writeText("café", .Windows1252)
+builder.writeText("café", .Windows1252)!
 builder.writeTextLossy("price: €", .Ascii)
 data := builder.build()
 
@@ -24,7 +24,7 @@ data := builder.build()
 reader := BlobReader(data)
 value := reader.readInt()
 flag := reader.readByte()
-text := try! reader.readText(4L, .Windows1252)
+text := reader.readText(4L, .Windows1252)!
 lossyText := reader.readTextLossy(8L, .Ascii)
 ```
 

@@ -14,12 +14,12 @@ import { BlobBuilder, BlobReader, Endian, TextEncoding } from "std/blob"
 
 builder := BlobBuilder { endianness: .BigEndian }
 builder.writeInt(16909060)
-try! builder.writeText("cafe", .Utf8)
+builder.writeText("cafe", .Utf8)!
 data := builder.build()
 
 reader := BlobReader { data, endianness: .BigEndian }
 number := reader.readInt()
-text := try! reader.readText(reader.remaining(), .Utf8)
+text := reader.readText(reader.remaining(), .Utf8)!
 ```
 
 ## Byte Order
